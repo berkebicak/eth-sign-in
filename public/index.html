@@ -1,0 +1,63 @@
+<html>
+
+<head>
+  <title>Express</title>
+  <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+
+<body>
+  <h1>WELCOME TO ZOMBIE ROAD</h1>
+  <p>SIGN IN</p>
+  <button onclick="signIn()">Ethereum ile Giriş Yap</button>
+
+  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+
+  <script>
+    async function signIn() {
+      // Cüzdan erişimi isteyelim
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
+      console.log(accounts)
+
+      // Daha kolay işlem yapabilmek için ethers kütüphanesine Web3 Provider olarak MetaMask'in sunduğu Ethereum Provider'ını veriyoruz
+      const provider = new ethers.providers.Web3Provider(window.ethereum)
+
+      // Signerı hesap olarak düşünebilirsiniz. Ethereum ağında veya dışında hesabınızla yaptığınız her işlemde bir veri imzalanır.
+      const signer = provider.getSigner()
+      console.log(signer)
+
+      // Sunucuya hesap adresini göndererek imzalanması gereken mesajı alalım.
+      const response = await fetch('/auth/ethereum/message', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ address: accounts[0] })
+      })
+
+      const { message } = await response.json()
+
+      // Signer'dan imzalamasını isteyelim.
+      const signature = await signer.signMessage(message)
+      console.log(signature)
+      // Imzayı sunucuya gönderelim
+      const verifyResponse = await fetch('/auth/ethereum/verify', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ address: accounts[0], signature })
+      })
+
+      const { status } = await verifyResponse.json()
+
+      let authMessage;
+
+      if (status) authMessage = `Auth successful! Welcome <pre>${accounts[0]}</pre>`
+      else authMessage = `Auth failed. Please try again later or contact with us.`
+
+      document.querySelector('h1').innerHTML = authMessage
+    }
+  </script>
+</body>
+
+</html>
